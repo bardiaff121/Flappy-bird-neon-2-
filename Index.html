@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بازی فلاپی برد نئونی</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        
+        .container {
+            width: 360px;
+            position: relative;
+        }
+        
+        .game-container {
+            position: relative;
+            width: 360px;
+            height: 600px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 247, 255, 0.7),
+                        0 0 40px rgba(0, 255, 255, 0.5),
+                        0 0 60px rgba(0, 255, 255, 0.3);
+            border: 2px solid #00f7ff;
+        }
+        
+        canvas {
+            background-color: #120e2e;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        
+        .panel {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            font-size: 20px;
+            text-shadow: 0 0 10px #00f7ff, 0 0 20px #00f7ff;
+            z-index: 10;
+        }
+        
+        .score {
+            color: #00f7ff;
+        }
+        
+        .high-score {
+            color: #ff00ff;
+        }
+        
+        .start-screen, .game-over, .waiting-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(18, 14, 46, 0.9);
+            z-index: 20;
+        }
+        
+        .title {
+            font-size: 32px;
+            margin-bottom: 20px;
+            color: #00f7ff;
+            text-shadow: 0 0 10px #00f7ff, 0 0 20px #00f7ff, 0 0 30px #00f7ff;
+            animation: pulse 2s infinite;
+        }
+        
+        .subtitle {
+            font-size: 24px;
+            margin: 10px 0;
+            color: #ff00ff;
+            text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #00f7ff, #ff00ff);
+            border: none;
+            padding: 15px 30px;
+            font-size: 20px;
+            border-radius: 50px;
+            margin-top: 30px;
+            cursor: pointer;
+            color: white;
+            box-shadow: 0 0 15px rgba(0, 247, 255, 0.7),
+                        0 0 25px rgba(255, 0, 255, 0.5);
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(0, 247, 255, 0.9),
+                        0 0 30px rgba(255, 0, 255, 0.7);
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .instructions {
+            text-align: center;
+            margin-top: 20px;
+            line-height: 1.6;
+            color: #a5a5a5;
+            max-width: 300px;
+        }
+        
+        .last-score {
+            color: #ffff00;
+            text-shadow: 0 0 10px #ffff00, 0 0 20px #ffff00;
+            margin-top: 10px;
+        }
+        
+        .click-to-start {
+            font-size: 24px;
+            color: #7ef542;
+            text-shadow: 0 0 10px #7ef542, 0 0 20px #7ef542;
+            margin-top: 20px;
+            animation: pulse 1.5s infinite;
+            cursor: pointer;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.8; }
+            50% { opacity: 1; }
+            100% { opacity: 0.8; }
+        }
+        
+        .neon-circle {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(15px);
+            z-index: -1;
+        }
+        
+        .circle1 {
+            width: 300px;
+            height: 300px;
+            background: rgba(255, 0, 255, 0.2);
+            top: -150px;
+            right: -150px;
+        }
+        
+        .circle2 {
+            width: 200px;
+            height: 200px;
+            background: rgba(0, 247, 255, 0.2);
+            bottom: -100px;
+            left: -100px;
+        }
+        
+        .circle3 {
+            width: 150px;
+            height: 150px;
+            background: rgba(255, 255, 0, 0.2);
+            top: 50%;
+            left: 50px;
+        }
+    </style>
+</head>
+<body>
+    <div class="neon-circle circle1"></div>
+    <div class="neon-circle circle2"></div>
+    <div class="neon-circle circle3"></div>
+    
+    <div class="container">
+        <div class="game-container">
+            <div class="panel">
+                <div class="score">امتیاز: <span id="score">0</span></div>
+                <div class="high-score">بالاترین: <span id="high-score">0</span></div>
+            </div>
+            
+            <canvas id="game-canvas"></canvas>
+            
+            <div class="start-screen" id="start-screen">
+                <h1 class="title">فلاپی برد نئونی</h1>
+                <p class="instructions">برای پرواز کلیک کنید یا کلید Space بزنید. از موانع عبور کنید و امتیاز بگیرید!</p>
+                <button class="btn" id="start-btn">شروع بازی</button>
+            </div>
+            
+            <div class="game-over hidden" id="game-over">
+                <h2 class="subtitle">بازی تمام شد!</h2>
+                <p class="last-score">امتیاز شما: <span id="last-score">0</span></p>
+                <p class="high-score">بالاترین امتیاز: <span id="final-high-score">0</span></p>
+                <button class="btn" id="restart-btn">دوباره بازی کن</button>
+            </div>
+            
+            <div class="waiting-screen hidden" id="waiting-screen">
+                <h2 class="subtitle">آماده هستید؟</h2>
+                <p class="click-to-start" id="click-to-start-text">برای شروع کلیک کنید</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // بازیابی عناصر DOM
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('game-over');
+        const waitingScreen = document.getElementById('waiting-screen');
+        const startBtn = document.getElementById('start-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const scoreElement = document.getElementById('score');
+        const highScoreElement = document.getElementById('high-score');
+        const lastScoreElement = document.getElementById('last-score');
+        const finalHighScoreElement = document.getElementById('final-high-score');
+        const clickToStartText = document.getElementById('click-to-start-text');
+        
+        // تنظیم اندازه کانواس
+        canvas.width = 360;
+        canvas.height = 600;
+        
+        // متغیرهای بازی
+        let game = {
+            isRunning: false,
+            speed: 3,
+            score: 0,
+            highScore: localStorage.getItem('flappyNeonHighScore') || 0,
+            waitingForClick: false
+        };
+        
+        // نمایش بالاترین امتیاز
+        highScoreElement.textContent = game.highScore;
+        
+        // پرنده
+        const bird = {
+            x: 80,
+            y: canvas.height / 2,
+            width: 30,
+            height: 24,
+            gravity: 0.5,
+            velocity: 0,
+            jump: -8,
+            
+            draw: function() {
+                // بدنه پرنده
+                ctx.fillStyle = '#00f7ff';
+                ctx.beginPath();
+                ctx.ellipse(this.x, this.y, this.width/2, this.height/2, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // اثر نئونی
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = '#00f7ff';
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                
+                // چشم
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.arc(this.x + 8, this.y - 2, 4, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // بال
+                ctx.fillStyle = '#ff00ff';
+                ctx.beginPath();
+                ctx.ellipse(this.x - 8, this.y, 10, 6, Math.PI/4, 0, Math.PI * 2);
+                ctx.fill();
+            },
+            
+            update: function() {
+                this.velocity += this.gravity;
+                this.y += this.velocity;
+                
+                // جلوگیری از خروج از صفحه
+                if (this.y >= canvas.height - this.height/2) {
+                    this.y = canvas.height - this.height/2;
+                    gameOver();
+                }
+                
+                if (this.y <= this.height/2) {
+                    this.y = this.height/2;
+                    this.velocity = 0;
+                }
+            },
+            
+            flap: function() {
+                this.velocity = this.jump;
+            },
+            
+            reset: function() {
+                this.y = canvas.height / 2;
+                this.velocity = 0;
+            }
+        };
+        
+        // لوله‌ها (موانع)
+        const pipes = {
+            position: [],
+            gap: 180,
+            maxYPos: 150,
+            width: 60,
+            
+            draw: function() {
+                for (let i = 0; i < this.position.length; i++) {
+                    let p = this.position[i];
+                    
+                    // رنگ سبز کمرنگ برای موانع
+                    ctx.fillStyle = '#7ef542';
+                    
+                    // لوله بالایی با گوشه‌های گرد
+                    this.drawRoundedRect(ctx, p.x, 0, this.width, p.y, 15);
+                    
+                    // لوله پایینی با گوشه‌های گرد
+                    this.drawRoundedRect(ctx, p.x, p.y + this.gap, this.width, canvas.height - p.y - this.gap, 15);
+                    
+                    // اثر نئونی
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#7ef542';
+                    this.drawRoundedRect(ctx, p.x, 0, this.width, p.y, 15);
+                    this.drawRoundedRect(ctx, p.x, p.y + this.gap, this.width, canvas.height - p.y - this.gap, 15);
+                    ctx.shadowBlur = 0;
+                    
+                    // لبه نئونی
+                    ctx.strokeStyle = '#00f7ff';
+                    ctx.lineWidth = 2;
+                    this.drawRoundedRect(ctx, p.x, 0, this.width, p.y, 15, true);
+                    this.drawRoundedRect(ctx, p.x, p.y + this.gap, this.width, canvas.height - p.y - this.gap, 15, true);
+                }
+            },
+            
+            // تابع برای رسم مستطیل با گوشه‌های گرد
+            drawRoundedRect: function(ctx, x, y, width, height, radius, isStroke = false) {
+                ctx.beginPath();
+                ctx.moveTo(x + radius, y);
+                ctx.lineTo(x + width - radius, y);
+                ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+                ctx.lineTo(x + width, y + height - radius);
+                ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                ctx.lineTo(x + radius, y + height);
+                ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+                ctx.lineTo(x, y + radius);
+                ctx.quadraticCurveTo(x, y, x + radius, y);
+                ctx.closePath();
+                
+                if (isStroke) {
+                    ctx.stroke();
+                } else {
+                    ctx.fill();
+                }
+            },
+            
+            update: function() {
+                if (game.isRunning) {
+                    // تولید لوله جدید
+                    if (frames % 100 === 0) {
+                        this.position.push({
+                            x: canvas.width,
+                            y: Math.floor(Math.random() * this.maxYPos) + 50
+                        });
+                    }
+                    
+                    for (let i = 0; i < this.position.length; i++) {
+                        let p = this.position[i];
+                        
+                        // حرکت لوله به چپ
+                        p.x -= game.speed;
+                        
+                        // حذف لوله‌های خارج شده از صفحه
+                        if (p.x + this.width <= 0) {
+                            this.position.shift();
+                            
+                            // افزایش امتیاز
+                            game.score++;
+                            scoreElement.textContent = game.score;
+                        }
+                        
+                        // تشخیص برخورد
+                        if (
+                            bird.x + bird.width/2 > p.x && 
+                            bird.x - bird.width/2 < p.x + this.width && 
+                            (bird.y - bird.height/2 < p.y || bird.y + bird.height/2 > p.y + this.gap)
+                        ) {
+                            gameOver();
+                        }
+                    }
+                }
+            },
+            
+            reset: function() {
+                this.position = [];
+            }
+        };
+        
+        // پس‌زمینه
+        const background = {
+            draw: function() {
+                // ستاره‌ها
+                ctx.fillStyle = '#FFFFFF';
+                for (let i = 0; i < 50; i++) {
+                    let x = Math.random() * canvas.width;
+                    let y = Math.random() * canvas.height;
+                    let radius = Math.random() * 1.5;
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                // خطوط نئونی افقی
+                ctx.strokeStyle = 'rgba(0, 247, 255, 0.2)';
+                ctx.lineWidth = 1;
+                
+                for (let i = 0; i < 5; i++) {
+                    let y = (i * 150) + (frames % 150);
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(canvas.width, y);
+                    ctx.stroke();
+                }
+            }
+        };
+        
+        // فریم‌های بازی
+        let frames = 0;
+        
+        // حلقه بازی
+        function gameLoop() {
+            // پاک کردن کانواس
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // رسم پس‌زمینه
+            background.draw();
+            
+            // به روزرسانی و رسم لوله‌ها
+            pipes.update();
+            pipes.draw();
+            
+            // به روزرسانی و رسم پرنده
+            bird.update();
+            bird.draw();
+            
+            frames++;
+            
+            if (game.isRunning) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+        
+        // شروع بازی
+        function startGame() {
+            game.isRunning = true;
+            game.score = 0;
+            scoreElement.textContent = game.score;
+            
+            bird.reset();
+            pipes.reset();
+            
+            startScreen.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
+            waitingScreen.classList.add('hidden');
+            
+            frames = 0;
+            gameLoop();
+        }
+        
+        // حالت انتظار برای کلیک
+        function waitForClick() {
+            game.waitingForClick = true;
+            waitingScreen.classList.remove('hidden');
+        }
+        
+        // پایان بازی
+        function gameOver() {
+            game.isRunning = false;
+            
+            // به روزرسانی امتیازها
+            lastScoreElement.textContent = game.score;
+            
+            if (game.score > game.highScore) {
+                game.highScore = game.score;
+                localStorage.setItem('flappyNeonHighScore', game.highScore);
+                highScoreElement.textContent = game.highScore;
+            }
+            
+            finalHighScoreElement.textContent = game.highScore;
+            
+            // نمایش صفحه پایان بازی
+            gameOverScreen.classList.remove('hidden');
+        }
+        
+        // کنترل پرنده با کلیک یا اسپیس
+        document.addEventListener('keydown', function(e) {
+            if (e.code === 'Space') {
+                if (game.isRunning) {
+                    bird.flap();
+                } else if (game.waitingForClick) {
+                    game.waitingForClick = false;
+                    startGame();
+                }
+            }
+        });
+        
+        canvas.addEventListener('click', function() {
+            if (game.isRunning) {
+                bird.flap();
+            }
+        });
+        
+        // کلیک روی متن "برای شروع کلیک کنید"
+        clickToStartText.addEventListener('click', function() {
+            if (game.waitingForClick) {
+                game.waitingForClick = false;
+                startGame();
+            }
+        });
+        
+        // دکمه شروع بازی
+        startBtn.addEventListener('click', startGame);
+        
+        // دکمه شروع مجدد بازی
+        restartBtn.addEventListener('click', function() {
+            gameOverScreen.classList.add('hidden');
+            waitForClick();
+        });
+        
+        // آماده‌سازی اولیه
+        bird.draw();
+    </script>
+</body>
+</html>
